@@ -1,0 +1,61 @@
+.include "D:\Default Folders\Desktop\Com_Struct_lab\nominal.jsim"
+.include "D:\Default Folders\Desktop\Com_Struct_lab\Lab_2\lab2checkoff.jsim"
+* INVERTER: input is A, output is Z
+.subckt inv a z
+MPD1 z a 0 0 NENH sw=16 sl=1
+MPU1 z a vdd vdd PENH sw=16 sl=1
+.ends
+
+.subckt NOR2 a b z 
+MPUA vdd a cnn2 vdd PENH sw=8 sl=1
+MPUB cnn2 b z vdd PENH sw=8 sl=1
+MPDA z a 0 0 NENH sw=8 sl=1
+MPDB z b 0 0 NENH sw=8 sl=1
+.ends
+
+.subckt nand2 a b z 
+MPUA vdd a z vdd PENH sw=8 sl=1
+MPUB vdd b z vdd PENH sw=8 sl=1
+MPDA z a cnn1 0 NENH sw=8 sl=1
+MPDB cnn1 b 0 0 NENH sw=8 sl=1
+.ends
+
+.subckt XOR2 a b z 
+Xnand1 a b_ ab_ nand2
+Xnand2 b a_ ba_ nand2
+Xnand3 ab_ ba_ z nand2
+Xinv a a_ inv
+Xinv2 b b_ inv
+.ends
+
+.subckt XORR2 a b z 
+XNOR2 a b nor_out NOR2
+MPUA vdd a cnn1 vdd PENH sw=8 sl=1
+MPUB vdd b cnn1 vdd PENH sw=8 sl=1
+MPUC cnn1 nor_out z vdd PENH sw=8 sl=1
+MPDA z a cnn3 0 NENH sw=8 sl=1
+MPDB z nor_out 0 0 NENH sw=8 sl=1
+MPDC cnn3 b 0 0 NENH sw=8 sl=1
+.ends
+
+.subckt FA a b ci s co
+XXOR1 a b xor_out XOR2
+XXOR2 xor_out ci s XOR2
+Xnand1 a b nand1_out nand2
+Xnand2 ci xor_out nand2_out nand2
+Xnand3 nand2_out nand1_out co nand2
+.ends
+
+.subckt ADDER4 a3 a2 a1 a0 b3 b2 b1 b0 s4 s3 s2 s1 s0
+Xbit0 a0 b0 0 s0 c0 FA 
+Xbit1 a1 b1 c0 s1 c1 FA 
+Xbit2 a2 b2 c1 s2 c2 FA 
+Xbit3 a3 b3 c2 s3 s4 FA 
+.ends
+
+*Mosfet ndrain ngate nsource nsubstrate
+
+
+
+
+

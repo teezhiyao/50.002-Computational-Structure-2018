@@ -1,0 +1,274 @@
+.include "/nominal.jsim" 
+.include "/stdcell.jsim" 
+.include "/lab6checkoff.jsim"
+
+.subckt mux8 s0 s1 s2 d[0:7] output 
+Xmux2_s2 s2#4 d[0:3] d[4:7] dout[0:3] mux2 
+Xmux4_1 s0 s1 dout[0:3] output mux4
+.ends
+
+.subckt and5 ra[4:0] _radata[31:0] radata[31:0]
+Xand1 ra4 ra3 ra43 and2
+Xand2 ra43 ra2 ra1 ra0 ra_f and4
+Xmux ra_f#32 _radata[31:0] 0#32 radata[31:0] mux2
+.ends
+
+
+.subckt FA a b ci s co
+Xxor1 a b xor_out xor2
+Xxor2 xor_out ci s xor2
+Xnand1 a b nand1_out nand2
+Xnand2 ci xor_out nand2_out nand2
+Xnand3 nand2_out nand1_out co nand2
+.ends
+
+.subckt ADDER4 a3 a2 a1 a0 b3 b2 b1 b0 s4 s3 s2 s1 s0
+Xbit0 a0 b0 0 s0 c0 FA 
+Xbit1 a1 b1 c0 s1 c1 FA 
+Xbit2 a2 b2 c1 s2 c2 FA 
+Xbit3 a3 b3 c2 s3 s4 FA 
+.ends
+
+.subckt nor32 B[31:0] s
+Xnor32_1 B[0:7] B[8:15] B[16:23] B[24:31] s1[0:7] nor4
+Xnor32_2 s1[0:1] s1[2:3] s1[4:5] s1[6:7] s2[0:1] and4
+Xnor32_3 s2[0] s2[1] s and2
+.ends
+
+.subckt forV a b s z
+Xinverter a _a inverter
+Xinverter2 b _b inverter
+Xinverter3 s _s inverter
+Xand1 a b _s z1 and3
+Xand2 _a _b s z2 and3
+Xor z1 z2 z or2
+.ends
+
+.subckt adder32 ALUFN[0] A[31:0] B[31:0] s[31:0] z v n
+Xxor32 B[0:31] ALUFN[0]#32 _B[0:31] xor2
+Xbit A[0] _B[0] ALUFN[0] s[0] cout[0] FA
+Xbit1 A[1:31] _B[1:31] cout[0:30] s[1:31] cout[1:31] FA
+Xnor_32 s[31:0] z nor32
+.connect s[31] n
+Xorr A[31] _B[31] s[31] v forV
+.ends
+
+.subckt nxor2 a b s
+Xxor2 a b _s xor2
+Xinv _s s inverter 
+.ends
+
+.subckt compare32 ALUFN[2:1] z v n cmp[31:0]
+.connect cmp[31:1] 0
+Xxor2 n v s2 xor2
+Xor s2 z s3 or2
+Xmux4 ALUFN[1] ALUFN[2] 0 z s2 s3 cmp[0] mux4
+.ends
+
+.subckt boole32 ALUFN[3:0] A[31:0] B[31:0] boole[31:0]
+Xmux4 A[0:31] B[0:31] ALUFN[0]#32 ALUFN[1]#32 ALUFN[2]#32 ALUFN[3]#32 boole[0:31] mux4
+.ends
+
+.subckt shift_left A[31:0] B[4:0] shift[31:0] cnn
+Xshift_B4 B[4]#32 A[31:0] A[15:0] cnn#16 W[31:0] mux2
+Xshift_B3 B[3]#32 W[31:0] W[23:0] cnn#8  X[31:0] mux2
+Xshift_B2 B[2]#32 X[31:0] X[27:0] cnn#4  Y[31:0] mux2
+Xshift_B1 B[1]#32 Y[31:0] Y[29:0] cnn#2 Z[31:0] mux2
+Xshift_B0 B[0]#32 Z[31:0] Z[30:0] cnn shift[31:0] mux2
+
+.ends
+
+.subckt shift_right A[31:0] B[4:0] shift[31:0] cnn
+Xshift_B4 B[4]#32 A[31:0] cnn#16 A[31:16] W[31:0] mux2
+Xshift_B3 B[3]#32 W[31:0] cnn#8 W[31:8] X[31:0] mux2
+Xshift_B2 B[2]#32 X[31:0] cnn#4 X[31:4] Y[31:0] mux2
+Xshift_B1 B[1]#32 Y[31:0] cnn#2 Y[31:2] Z[31:0] mux2
+Xshift_B0 B[0]#32 Z[31:0] cnn Z[31:1] shift[31:0] mux2
+.ends
+
+.subckt shift32 ALUFN[1:0] A[31:0] B[4:0] shift[31:0]
+XSHR A[31:0] B[4:0] SHR[31:0] 0 shift_right
+XSRA A[31:0] B[4:0] SRA[31:0] A[31] shift_right
+XSHL A[31:0] B[4:0] SHL[31:0] 0 shift_left
+Xmuxx ALUFN[0]#32 ALUFN[1]#32 SHL[31:0] SHR[31:0] 0#32 SRA[31:0] shift[31:0] mux4
+.ends
+
+.subckt and32 A[31:0] B z[31:0]
+XAND a[31:0] b#32 z[31:0] and2
+.ends
+
+.subckt alu ALUFN[5:0] A[31:0] B[31:0] alu[31:0] z v n
+Xadder32 ALUFN[0] A[31:0] B[31:0] s_add[31:0] z v n adder32
+Xboole32 ALUFN[3:0] A[31:0] B[31:0] boole[31:0] boole32
+Xcompare32 ALUFN[2:1] z v n cmp[31:0] compare32
+Xshift32 ALUFN[1:0] A[31:0] B[4:0] shift[31:0] shift32
+Xmux4 ALUFN[4]#32 ALUFN[5]#32 s_add[31:0] boole[31:0] shift[31:0] cmp[31:0] alu[31:0] mux4
+.ends
+
+
+//Xctl reset z id[31:26] _pcsel[2:0] ra2sel asel bsel _wdsel[1:0] alufn[5:0] _werf _wasel moe _wr ctl
+.subckt ctl reset z id[31:26] pcsel[2:0] ra2sel asel bsel wdsel[1:0] alufn[5:0] werf wasel moe wr
+Xctl vdd 0 0 id[31:26] // one read port
++ xpcsel[2:0] wasel asel ra2sel bsel alufn[5:0] wdsel[1:0] werf moe _wr
++ $memory width=18 nlocations=64 contents=(
++ 0b011100000000000100 // opcode=0b000000
++ 0b011100000000000100 // opcode=0b000001
++ 0b011100000000000100 // opcode=0b000010
++ 0b011100000000000100 // opcode=0b000011
++ 0b011100000000000100 // opcode=0b000100
++ 0b011100000000000100 // opcode=0b000101
++ 0b011100000000000100 // opcode=0b000110
++ 0b011100000000000100 // opcode=0b000111
++ 0b011100000000000100 // opcode=0b001000
++ 0b011100000000000100 // opcode=0b001001
++ 0b011100000000000100 // opcode=0b001010
++ 0b011100000000000100 // opcode=0b001011
++ 0b011100000000000100 // opcode=0b001100
++ 0b011100000000000100 // opcode=0b001101
++ 0b011100000000000100 // opcode=0b001110
++ 0b011100000000000100 // opcode=0b001111
++ 0b011100000000000100 // opcode=0b010000
++ 0b011100000000000100 // opcode=0b010001
++ 0b011100000000000100 // opcode=0b010010
++ 0b011100000000000100 // opcode=0b010011
++ 0b011100000000000100 // opcode=0b010100
++ 0b011100000000000100 // opcode=0b010101
++ 0b011100000000000100 // opcode=0b010110
++ 0b011100000000000100 // opcode=0b010111
++ 0b000000100000010110 // opcode=0b011000  LD
++ 0b000001100000000001 // opcode=0b011001  ST
++ 0b011100000000000100 // opcode=0b011010
++ 0b010000000000000100 // opcode=0b011011  JMP
++ 0b011100000000000100 // opcode=0b011100
++ 0b000000000000000100 // opcode=0b011101  BEQ 1 + 4 + 8 + 16 = 29
++ 0b000000000000000100 // opcode=0b011110  BNE
++ 0b000010001101010110 // opcode=0b011111  LDR
++ 0b000000000000001100 // opcode=0b100000  ADD
++ 0b000000000000101100 // opcode=0b100001  SUB
++ 0b011100000000000100 // opcode=0b100010
++ 0b011100000000000100 // opcode=0b100011
++ 0b000000011001101100 // opcode=0b100100  CMPEQ
++ 0b000000011010101100 // opcode=0b100101  CMPLT
++ 0b000000011011101100 // opcode=0b100110  CMPLE
++ 0b011100000000000100 // opcode=0b100111
++ 0b000000001100001100 // opcode=0b101000  AND
++ 0b000000001111001100 // opcode=0b101001  OR
++ 0b000000001011001100 // opcode=0b101010  XOR
++ 0b011100000000000100 // opcode=0b101011
++ 0b000000010000001100 // opcode=0b101100  SHL
++ 0b000000010000101100 // opcode=0b101101  SHR
++ 0b000000010001101100 // opcode=0b101110  SRA
++ 0b011100000000000100 // opcode=0b101111
++ 0b000000100000001100 // opcode=0b110000  ADDC
++ 0b000000100000101100 // opcode=0b110001  SUBC
++ 0b011100000000000100 // opcode=0b110010
++ 0b011100000000000100 // opcode=0b110011
++ 0b000000111001101100 // opcode=0b110100  CMPEQC
++ 0b000000111010101100 // opcode=0b110101  CMPLTC
++ 0b000000111011101100 // opcode=0b110110  CMPLEC
++ 0b011100000000000100 // opcode=0b110111
++ 0b000000101100001100 // opcode=0b111000  ANDC
++ 0b000000101111001100 // opcode=0b111001  ORC
++ 0b000000101011001100 // opcode=0b111010  XORC
++ 0b011100000000000100 // opcode=0b111011
++ 0b000000110000001100 // opcode=0b111100  SHLC
++ 0b000000110000101100 // opcode=0b111101  SHRC
++ 0b000000110001101100 // opcode=0b111110  SRAC
++ 0b011100000000000100 // opcode=0b111111
++ )
+
+//BEQ
+//id[31:26]
+Xand4 id[30] id[29] id[28] id[26] ones and4
+Xnand2 id[31] id[27] zeroes nor2
+Xand2 ones zeroes beqout and2
+
+//BNE
+Xandd4 id[30] id[29] id[28] id[27] onesbne and4
+Xnandd2 id[31] id[26] zeroesbne nor2
+Xandd2 onesbne zeroesbne bneout and2
+
+Xtestbeq z#3 beqout#3 xpcsel[2:0] xpcsel[2:0] xpcsel[2:0] 0#2 vdd _pcsel[2:0] mux4
+Xtestbne z#3 bneout#3 _pcsel[2:0] _pcsel[2:0] 0#2 vdd _pcsel[2:0] pcsel[2:0] mux4
+
+Xmux reset _wr 0 wr mux2
+.ends
+
+
+.subckt pc clk reset ia[31:0] pcsel[2:0] pc_4[31:0] pc_sext[31:0] jt[31:0] id[31:0] sext[31:0]
+Xxadr vdd 0#27 vdd 0#3 xadr[31:0] buffer     // Mem[0x00000008] = BR(interrupt_handler)
+Xillop vdd 0#28 vdd 0#2 illop[31:0] buffer  // Mem[0x0000004] = BR(illop_handler)
+Xadr4 0#29 vdd 0#2 valuefour[31:0] buffer //Create a value of 4 for doing pc+4
+
+Xand2 ia[31] jt[31] newpc_4 and2 
+
+//mux for pcsel
+Xmux8 pcsel[0]#32 pcsel[1]#32 pcsel[2]#32 
++ pc_4[31:0] ia[31] pc_sext[30:0] newpc_4 jt[30:2] 0#2 illop[31:0] 
++ xadr[31:0] 0#32 0#32 0#32 muxout[31:0] mux8
+
+Xshift vdd 0#5 sext[31:0] 0#30 vdd 0 sextshift[31:0] z22 v22 n22 alu
+//dreg with the clk
+Xdreg d[31:0] clk#32 ia[31:0] dreg
+//pc+4
+Xadder 0#6 ia[31:0] valuefour[31:0] pc_4[31:0] z v n alu
+// (PC+4) + (C<<2)
+Xadderr 0 pc_4[31:0] sextshift[31:0] pc_sext[31:0] z1 v1 n1 adder32
+//reset
+Xreset reset#32 muxout[31:0] vdd 0#31 d[31:0] mux2
+.ends
+
+
+.subckt regfile clk werf ra2sel ra[4:0] rb[4:0] rc[4:0] wdata[31:0] radata[31:0] rbdata[31:0] wasel
+Xregfile
++ vdd 0 0 ra[4:0] _radata[31:0] 
++ vdd 0 0 rmux[4:0] _rbdata[31:0]
++ 0 clk werf wa[4:0] wdata[31:0]
++ $memory width=32 nlocations=31
+
+Xra2sel ra2sel#5 rb[4:0] rc[4:0] rmux[4:0] mux2
+Xforce0 ra[4:0] _radata[31:0] radata[31:0] and5
+Xforce2 rmux[4:0] _rbdata[31:0] rbdata[31:0] and5
+
+Xwasel wasel#5 rc[4:0] vdd#4 0 wa[4:0] mux2
+.ends
+
+.subckt beta clk reset irq ia[31:0] id[31:0] ma[31:0] radata[31:0]
++ moe mrd[31:0] wr mwd[31:0]
+
+//initate pc ctl and regfile
+Xpc clk reset ia[31:0] pcsel[2:0] pc_4[31:0] pcsext[31:0] radata[31:0] id[31:0] sext[31:0] pc
+Xctl reset z id[31:26] _pcsel[2:0] ra2sel asel bsel _wdsel[1:0] alufn[5:0] _werf _wasel moe _wr ctl
+Xregfile clk werf ra2sel id[20:16] id[15:11] id[25:21] wdata[31:0] radata[31:0] rbdata[31:0] wasel regfile
+
+//sext is sign value, sextshift is multiplied by 4
+Xsext id[15]#16 id[15:0] sext[31:0] buffer 
+//Xshift sext[29:0] 0#2 sextshift[31:0] buffer
+
+// Setting up all the interrupt stuff
+Xirq1 ia[31] user inverter
+Xirq2 irq user interrupt and2                      // when irq=1 and in usermode, got interrupt
+Xirq3 interrupt#3 _pcsel[2:0] vdd 0#2 pcsel[2:0] mux2  // set pcsel to 4 
+Xirq4 interrupt _wasel vdd wasel mux2                  // wasel to 1 (select XP as the register file write address)
+Xirq5 interrupt _werf vdd werf mux2                    // werf to 1
+Xirq6 interrupt#2 _wdsel[1:0] 0#2 wdsel[1:0] mux2      // wdsel to 0 (select pc+4 as data to be written into reg file)
+Xirq7 interrupt _wr 0 wr mux2                          // wr to 0 (if interrupted instr was ST, it doesn't get to write into main memory)
+
+//z
+Xnor322 radata[31:0] z nor32
+
+//Muxxes
+XAsel asel#32 radata[31:0] 0 pcsext[30:0] aluAin[31:0] mux2
+XBsel bsel#32 mwd[31:0] sext[31:0] aluBin[31:0] mux2
+Xwdsel wdsel[0]#32 wdsel[1]#32 ia[31] pc_4[30:0] ma[31:0] mrd[31:0] 0#32 wdata[31:0] mux4 
+
+//alu
+Xalu alufn[5:0] aluAin[31:0] aluBin[31:0] ma[31:0] z2 v2 n2 alu 
+
+Xjoin rbdata[31:0] mwd[31:0] buffer 
+.ends
+
+
+
+
+

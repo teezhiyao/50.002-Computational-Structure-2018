@@ -1,0 +1,100 @@
+
+.include beta.uasm
+.include lab5checkoff.uasm
+count_bull_cows: | your subroutine must have this name
+	PUSH(LP) | standard subroutine entry sequence
+	PUSH(BP)
+	MOVE(SP, BP)
+ 
+	PUSH(R1) | a
+	PUSH(R2) | b
+	PUSH(R3) | bulls
+	PUSH(R4) | cows
+	PUSH(R5) | i
+	PUSH(R6) | j
+	PUSH(R7) | btemp
+	PUSH(R8) | atry
+	PUSH(R9) | btry
+	PUSH(R10) | mask
+	PUSH(R11)
+	PUSH(R12)
+	PUSH(R13)
+	PUSH(R14)
+	PUSH(R15)
+	PUSH(R16)
+	LD(BP,-12,R1) | LD first arguement
+	LD(BP,-16,R2) | LD second argument
+	CMOVE(0,R3) | bulls = 0
+	CMOVE(0xF,R10) | mask = 0xF
+	CMOVE(0,R5) | i = 0
+	BR(exitfor)
+forloop:
+	AND(R1,R10,R11) 
+	AND(R2,R10,R12)
+	CMPEQ(R11,R12,R13)
+	BEQ(R13,skipif,R31) | Skip if statement if not equal
+	ADDC(R3,1,R3) | Add 1 to bulls
+	OR(R1,R10,R1) | a = a or mask
+	OR(R2,R10,R2) | b = b or mask
+skipif:
+	SHLC(R10,4,R10)
+	ADDC(R5,1,R5)
+exitfor:
+	CMPLTC(R5,4,R15)
+	BNE(R15,forloop,R31) |if i = 4
+	CMOVE(0,R4) | coew = 0
+	CMOVE(0,R5) | i = 0
+	BR(exitfor2)
+forloop2:
+	ANDC(R1,0xF,R11) | atry is stored in 11
+	SHRC(R1,4,R1) | shift a by 4
+	CMPEQC(R11,0xF,R15)
+	BNE(R15,skipOuterif,R31) | if 
+	ADDC(R2,0,R13) | btemp = b
+	CMOVE(0xF,R10) | mask = 0xF
+	CMOVE(0,R6) | j = 0
+	BR(exitinner)
+innerfor:
+	ANDC(R13,0xF,R12) |btemp is stored in 13 and R12 is btry
+	SHRC(R13,4,R13) |Btemp Shift right by 4 bits
+	CMPEQ(R11,R12,R15)
+	BEQ(R15,skipinnerif,R31) | check if atry and btry are equal
+	ADDC(R4,1,R4) | add 1 to cow
+	OR(R2,R10,R2) | b = b or mask
+	BR(skipOuterif)
+skipinnerif:
+	ADDC(R6,1,R6) | j + 1 
+	SHLC(R10,4,R10)	| shift mask by 4 bit
+exitinner:
+	CMPLTC(R6,4,R16)
+	BNE(R16,innerfor,R31) | if j = 4 exit 
+skipOuterif:
+	ADDC(R5,1,R5) | i + 1
+exitfor2:
+	CMPLTC(R5,4,R15)
+	BNE(R15,forloop2,R31) | if i = 4 
+	SHLC(R3,4,R3)
+	ADD(R3,R4,R0)
+POP(R16)
+POP(R15)
+POP(R14)
+POP(R13)
+POP(R12)
+POP(R11)
+POP(R10)
+POP(R9)
+POP(R8)
+POP(R7)
+POP(R6)
+POP(R5)
+POP(R4)
+POP(R3)
+POP(R2)
+POP(R1)
+MOVE(BP,SP)
+POP(BP)
+POP(LP)
+RTN()
+StackBase: 
+LONG(.+4) | Pointer to bottom of stack
+. = .+0x1000 | Reserve space for stack...
